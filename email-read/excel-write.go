@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/tealeg/xlsx"
 )
@@ -37,9 +38,20 @@ func (f *ExcelFile) AddRow(sheet string, itens []string) {
 
 // Save salvar excel
 func (f *ExcelFile) Save(filename string) error {
+	if exists := f.fileExists(filename); exists {
+		os.Remove(filename)
+	}
 	err := f.File.Save(filename)
 	if err != nil {
 		fmt.Printf(err.Error())
 	}
 	return err
+}
+
+func (f *ExcelFile) fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

@@ -84,19 +84,15 @@ func main() {
 		header := mr.Header
 		if date, err := header.Date(); err == nil {
 			row = append(row, date.Format("2006-01-02 15:04:05"))
-			log.Println("Date:", date)
 		}
 		if from, err := header.AddressList("From"); err == nil {
 			row = append(row, from[0].Address)
-			log.Println("From:", from)
 		}
 		if to, err := header.AddressList("To"); err == nil {
 			row = append(row, to[0].Address)
-			log.Println("To:", to)
 		}
 		if subject, err := header.Subject(); err == nil {
 			row = append(row, subject)
-			log.Println("Subject:", subject)
 		}
 
 		// Process each message's part
@@ -112,7 +108,6 @@ func main() {
 			case *mail.InlineHeader:
 				// This is the message's text (can be plain-text or HTML)
 				b, _ := ioutil.ReadAll(p.Body)
-				fmt.Println("Got text: %v", string(b))
 				row = append(row, string(b))
 			case *mail.AttachmentHeader:
 				// This is an attachment
@@ -130,7 +125,7 @@ func main() {
 
 	var fileName string
 
-	fmt.Println("Digite o nome do arquivo (sem .xlsx)")
+	fmt.Print("Digite o nome do arquivo (sem .xlsx): ")
 	fmt.Scanf("%v", &fileName)
 	file.Save(fileName + ".xlsx")
 
