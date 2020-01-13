@@ -128,7 +128,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	file.Save("teste-excel.xlsx")
+	var fileName string
+
+	fmt.Println("Digite o nome do arquivo (sem .xlsx)")
+	fmt.Scanf("%v", &fileName)
+	file.Save(fileName + ".xlsx")
 
 	log.Println("Done!")
 }
