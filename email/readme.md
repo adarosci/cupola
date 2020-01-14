@@ -1,6 +1,6 @@
 # 1 - Fazer download do projeto
 # 2 - Extrair conteudo para uma pasta
-# 3 - Entrar na pasta `email-read`
+# 3 - Entrar na pasta `email`
 # 4 - abrir arquivo config.json e alterar o conteudo com o email e senha
 
 ```
