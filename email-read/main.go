@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
@@ -46,6 +50,7 @@ func main() {
 	// filtra mensagens não lidas
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{"\\Seen"}
+
 	uids, err := c.Search(criteria)
 
 	seqset := new(imap.SeqSet)
@@ -61,12 +66,16 @@ func main() {
 	}()
 
 	file := CreateFile()
-	file.AddRow("Planilha1", []string{"Date", "From", "To", "Subject", "Content"})
+	file.AddRow("Planilha1", []string{"Data", "Pauta", "Veiculo", "Link"})
 
+	fmt.Println("Lendo (" + strconv.Itoa(len(uids)) + ") emails")
+
+	i := 1
 	// mensagens
 	for msg := range messages {
-		log.Println("* "+msg.Envelope.Subject, msg.Flags)
 
+		fmt.Println("Lendo (" + strconv.Itoa(i) + " de " + strconv.Itoa(len(uids)) + ") emails")
+		i++
 		r := msg.GetBody(section)
 		if r == nil {
 			log.Fatal("Server didn't returned message body")
@@ -75,26 +84,20 @@ func main() {
 		// Create a new mail reader
 		mr, err := mail.CreateReader(r)
 		if err != nil {
-			log.Fatal(err)
+			continue
 		}
-
-		var row []string
 
 		// Print some info about the message
 		header := mr.Header
-		if date, err := header.Date(); err == nil {
-			row = append(row, date.Format("2006-01-02 15:04:05"))
-		}
-		if from, err := header.AddressList("From"); err == nil {
-			row = append(row, from[0].Address)
-		}
-		if to, err := header.AddressList("To"); err == nil {
-			row = append(row, to[0].Address)
-		}
-		if subject, err := header.Subject(); err == nil {
-			row = append(row, subject)
-		}
+		date, _ := header.Date()
 
+		//row = append(row, date.Format("2006-01-02 15:04:05"))
+
+		if from, err := header.AddressList("From"); err == nil {
+			if from[0].Address != "googlealerts-noreply@google.com" {
+				continue
+			}
+		}
 		// Process each message's part
 		for {
 			p, err := mr.NextPart()
@@ -104,19 +107,52 @@ func main() {
 				log.Fatal(err)
 			}
 
-			switch h := p.Header.(type) {
+			switch p.Header.(type) {
 			case *mail.InlineHeader:
 				// This is the message's text (can be plain-text or HTML)
 				b, _ := ioutil.ReadAll(p.Body)
-				row = append(row, string(b))
-			case *mail.AttachmentHeader:
-				// This is an attachment
-				filename, _ := h.Filename()
-				fmt.Println("Got attachment: %v", filename)
+				content := string(b)
+				scanner := bufio.NewScanner(strings.NewReader(content))
+
+				pauta, veiculo, link := "", "", ""
+				idx := -1
+				newLine := false
+
+				for scanner.Scan() {
+					//fmt.Println(scanner.Text())
+					if newLine {
+						if idx == 0 {
+							pauta = scanner.Text()
+						}
+						if idx == 1 {
+							veiculo = scanner.Text()
+						}
+						if strings.Contains(scanner.Text(), "https://") {
+							link = strings.Split(scanner.Text(), "url=")[1]
+							link = strings.Replace(link, ">", "", 1)
+							link = strings.Split(link, "&ct=ga")[0]
+						}
+						idx++
+						if pauta != "" && veiculo != "" && link != "" {
+							file.AddRow("Planilha1", []string{date.Format("2006-01-02 15:04:05"), pauta, veiculo, link})
+							pauta, veiculo, link = "", "", ""
+							newLine = false
+							idx = -1
+						}
+					}
+					if scanner.Text() == "" {
+						newLine = true
+						idx = 0
+					}
+					if strings.Contains(scanner.Text(), "- - - - - - - - - - - - - - - - - - - -") {
+						break
+					}
+				}
+
+				break
 			}
 		}
 
-		file.AddRow("Planilha1", row)
 	}
 
 	if err := <-done; err != nil {
@@ -126,8 +162,12 @@ func main() {
 	var fileName string
 
 	fmt.Print("Digite o nome do arquivo (sem .xlsx): ")
+
 	fmt.Scanf("%v", &fileName)
+
+	log.Println("Salvando arquivo!")
 	file.Save(fileName + ".xlsx")
 
-	log.Println("Done!")
+	log.Println("Finalizado!")
+	time.Sleep(time.Second * 2)
 }

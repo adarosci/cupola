@@ -1,4 +1,4 @@
-module emailread
+module cupola
 
 go 1.12
 
