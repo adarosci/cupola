@@ -119,7 +119,6 @@ func main() {
 				newLine := false
 
 				for scanner.Scan() {
-					//fmt.Println(scanner.Text())
 					if newLine {
 						if idx == 0 {
 							pauta = scanner.Text()
@@ -128,9 +127,14 @@ func main() {
 							veiculo = scanner.Text()
 						}
 						if strings.Contains(scanner.Text(), "https://") {
-							link = strings.Split(scanner.Text(), "url=")[1]
-							link = strings.Replace(link, ">", "", 1)
-							link = strings.Split(link, "&ct=ga")[0]
+							stp := strings.Split(scanner.Text(), "url=")
+							if len(stp) > 1 {
+								link = strings.Split(scanner.Text(), "url=")[1]
+								link = strings.Replace(link, ">", "", 1)
+								link = strings.Split(link, "&ct=ga")[0]
+							} else {
+								link = scanner.Text()
+							}
 						}
 						idx++
 						if pauta != "" && veiculo != "" && link != "" {
